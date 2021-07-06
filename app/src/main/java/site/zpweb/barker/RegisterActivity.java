@@ -4,17 +4,18 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import com.huawei.agconnect.auth.AGConnectAuth;
-import com.huawei.agconnect.auth.AGConnectAuthCredential;
 import com.huawei.agconnect.auth.EmailAuthProvider;
+import com.huawei.agconnect.auth.EmailUser;
 import com.huawei.agconnect.auth.PhoneAuthProvider;
+import com.huawei.agconnect.auth.PhoneUser;
 import com.huawei.agconnect.auth.SignInResult;
 import com.huawei.agconnect.auth.VerifyCodeResult;
 import com.huawei.agconnect.auth.VerifyCodeSettings;
@@ -25,44 +26,26 @@ import com.huawei.hmf.tasks.TaskExecutors;
 
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity {
+public class RegisterActivity extends AppCompatActivity {
 
-    Button register, emailLogin, phoneLogin;
-    EditText phone, email;
+    EditText email, phone;
+    Button register;
 
     int authType = AuthType.EMAIL;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_register);
 
-        register = findViewById(R.id.registerBtn);
-        emailLogin = findViewById(R.id.emailLogin );
-        phoneLogin = findViewById(R.id.phoneLogin);
+        email = findViewById(R.id.editTextTextEmailAddress);
+        phone = findViewById(R.id.editTextPhone);
 
-        phone = findViewById(R.id.editTextPhone2);
-        email = findViewById(R.id.editTextTextEmailAddress2);
+        register = findViewById(R.id.registerBtn2);
 
         register.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(MainActivity.this, RegisterActivity.class));
-            }
-        });
-
-        phone.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                authType = AuthType.PHONE;
-                sendVerifyCode();
-            }
-        });
-
-        email.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                authType = AuthType.EMAIL;
                 sendVerifyCode();
             }
         });
@@ -78,7 +61,9 @@ public class MainActivity extends AppCompatActivity {
                 .locale(Locale.ENGLISH)
                 .build();
 
-        if (authType == AuthType.EMAIL) {
+        if (!emailString.isEmpty()) {
+            authType = AuthType.EMAIL;
+
             Task<VerifyCodeResult> task = EmailAuthProvider.requestVerifyCode(emailString, settings);
             task.addOnSuccessListener(TaskExecutors.uiThread(), new OnSuccessListener<VerifyCodeResult>() {
                 @Override
@@ -88,13 +73,15 @@ public class MainActivity extends AppCompatActivity {
             }).addOnFailureListener(TaskExecutors.uiThread(), new OnFailureListener() {
                 @Override
                 public void onFailure(Exception e) {
-                    Toast.makeText(MainActivity.this,
+                    Toast.makeText(RegisterActivity.this,
                             "Error, code sending failed: " + e,
                             Toast.LENGTH_LONG).show();
                 }
             });
 
-        } else if (authType == AuthType.EMAIL) {
+        } else if (!phoneString.isEmpty()) {
+            authType = AuthType.PHONE;
+
             Task<VerifyCodeResult> task = PhoneAuthProvider.requestVerifyCode("44", phoneString, settings);
             task.addOnSuccessListener(TaskExecutors.uiThread(), new OnSuccessListener<VerifyCodeResult>() {
                 @Override
@@ -104,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
             }).addOnFailureListener(TaskExecutors.uiThread(), new OnFailureListener() {
                 @Override
                 public void onFailure(Exception e) {
-                    Toast.makeText(MainActivity.this,
+                    Toast.makeText(RegisterActivity.this,
                             "Error, code sending failed: " + e,
                             Toast.LENGTH_LONG).show();
                 }
@@ -125,32 +112,18 @@ public class MainActivity extends AppCompatActivity {
 
         alert.setView(authCodeField);
 
-        alert.setPositiveButton("Login", new DialogInterface.OnClickListener() {
+        alert.setPositiveButton("Register", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String authCode = authCodeField.getText().toString();
-
-                AGConnectAuthCredential credential = null;
-                if (authType == AuthType.EMAIL) {
-                    credential = EmailAuthProvider.credentialWithVerifyCode(
-                            email.getText().toString().trim(),
-                            null,
-                            authCode);
-                } else if (authType == AuthType.PHONE) {
-                    credential = PhoneAuthProvider.credentialWithVerifyCode(
-                            "44",
-                            phone.getText().toString().trim(),
-                            null,
-                            authCode);
-                }
-                signIn(credential);
+                register(authCode);
             }
         });
 
         alert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                Toast.makeText(MainActivity.this,
+                Toast.makeText(RegisterActivity.this,
                         "Registration Cancelled",
                         Toast.LENGTH_LONG).show();
             }
@@ -159,22 +132,53 @@ public class MainActivity extends AppCompatActivity {
         alert.show();
     }
 
-    private void signIn(AGConnectAuthCredential credential) {
-        AGConnectAuth.getInstance().signIn(credential)
-                .addOnSuccessListener(new OnSuccessListener<SignInResult>() {
-                    @Override
-                    public void onSuccess(SignInResult signInResult) {
-                        Toast.makeText(MainActivity.this, "Sign in successful: " +
-                                signInResult.getUser().getUid(), Toast.LENGTH_LONG);
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(Exception e) {
-                        Toast.makeText(MainActivity.this, "sign in failed:" + e, Toast.LENGTH_LONG);
-                    }
-                });
+    private void register(String authCode) {
+        String emailString = email.getText().toString().trim();
+        String phoneString = phone.getText().toString().trim();
 
+        if (authType == AuthType.EMAIL) {
+            EmailUser emailUser = new EmailUser.Builder()
+                    .setEmail(emailString)
+                    .setVerifyCode(authCode)
+                    .build();
+
+            AGConnectAuth.getInstance().createUser(emailUser).addOnSuccessListener(new OnSuccessListener<SignInResult>() {
+                @Override
+                public void onSuccess(SignInResult signInResult) {
+                    Toast.makeText(RegisterActivity.this,
+                            "Register Successful: " + signInResult.getUser().getUid(),
+                            Toast.LENGTH_LONG);
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(Exception e) {
+                    Toast.makeText(RegisterActivity.this,
+                            "Registering failed " + e,
+                            Toast.LENGTH_LONG);
+                }
+            });
+        } else if (authType == AuthType.PHONE) {
+            PhoneUser phoneUser = new PhoneUser.Builder()
+                    .setPhoneNumber(phoneString)
+                    .setCountryCode("44")
+                    .setVerifyCode(authCode)
+                    .build();
+
+            AGConnectAuth.getInstance().createUser(phoneUser).addOnSuccessListener(new OnSuccessListener<SignInResult>() {
+                @Override
+                public void onSuccess(SignInResult signInResult) {
+                    Toast.makeText(RegisterActivity.this,
+                            "Register Successful: " + signInResult.getUser().getUid(),
+                            Toast.LENGTH_LONG);
+                }
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(Exception e) {
+                    Toast.makeText(RegisterActivity.this,
+                            "Registering failed " + e,
+                            Toast.LENGTH_LONG);
+                }
+            });
+        }
     }
 }
-
