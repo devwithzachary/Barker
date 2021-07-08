@@ -1,4 +1,4 @@
-package site.zpweb.barker;
+package site.zpweb.barker.utils;
 
 public class AuthType {
     public static int EMAIL = 0;
