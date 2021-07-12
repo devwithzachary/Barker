@@ -1,12 +1,14 @@
 package site.zpweb.barker.auth;
 
 import android.content.Context;
+import android.util.Log;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AlertDialog;
 
 import com.huawei.agconnect.auth.AGConnectAuth;
 import com.huawei.agconnect.auth.AGConnectAuthCredential;
+import com.huawei.agconnect.auth.AGConnectUser;
 import com.huawei.agconnect.auth.EmailAuthProvider;
 import com.huawei.agconnect.auth.EmailUser;
 import com.huawei.agconnect.auth.PhoneAuthProvider;
@@ -18,6 +20,8 @@ import com.huawei.hmf.tasks.TaskExecutors;
 
 import java.util.Locale;
 
+import site.zpweb.barker.db.CloudDBManager;
+import site.zpweb.barker.model.User;
 import site.zpweb.barker.utils.AuthType;
 import site.zpweb.barker.utils.Toaster;
 
@@ -28,12 +32,14 @@ public class AuthenticationManager {
     int authType;
     String contactString;
     boolean isLogin;
+    CloudDBManager dbManager;
 
-    public AuthenticationManager(Context context, int authType, String contactString, boolean isLogin){
+    public AuthenticationManager(Context context, int authType, String contactString, boolean isLogin, CloudDBManager dbManager){
         this.context = context;
         this.authType = authType;
         this.contactString = contactString;
         this.isLogin = isLogin;
+        this.dbManager = dbManager;
     }
 
     public void sendVerifyCode() {
@@ -109,7 +115,7 @@ public class AuthenticationManager {
     private void signIn(AGConnectAuthCredential credential) {
         AGConnectAuth.getInstance().signIn(credential)
                 .addOnSuccessListener(signInResult -> {
-                    //Do something
+                    getUser();
                 })
                 .addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
 
@@ -123,7 +129,12 @@ public class AuthenticationManager {
                     .build();
 
             AGConnectAuth.getInstance().createUser(emailUser).addOnSuccessListener(signInResult -> {
-                //user registered
+                User user = new User();
+                user.setId(dbManager.getMaxUserID() + 1);
+                user.setUid(signInResult.getUser().getUid());
+                dbManager.upsertUser(user, context);
+
+                getUser();
             }).addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
         } else if (authType == AuthType.PHONE) {
             PhoneUser phoneUser = new PhoneUser.Builder()
@@ -133,8 +144,18 @@ public class AuthenticationManager {
                     .build();
 
             AGConnectAuth.getInstance().createUser(phoneUser).addOnSuccessListener(signInResult -> {
-                //user registered
+                User user = new User();
+                user.setId(dbManager.getMaxUserID() + 1);
+                user.setUid(signInResult.getUser().getUid());
+                dbManager.upsertUser(user, context);
+                getUser();
             }).addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
         }
+    }
+
+    private void getUser(){
+        AGConnectUser user = AGConnectAuth.getInstance().getCurrentUser();
+        toaster.sendSuccessToast(context, user.getUid());
+
     }
 }

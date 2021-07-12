@@ -8,6 +8,7 @@ import android.widget.EditText;
 import androidx.appcompat.app.AppCompatActivity;
 
 import site.zpweb.barker.auth.AuthenticationManager;
+import site.zpweb.barker.db.CloudDBManager;
 import site.zpweb.barker.utils.AuthType;
 
 public class MainActivity extends AppCompatActivity {
@@ -16,6 +17,8 @@ public class MainActivity extends AppCompatActivity {
     EditText phone, email;
 
     AuthenticationManager authManager;
+
+    CloudDBManager dbManager = new CloudDBManager();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,29 +32,26 @@ public class MainActivity extends AppCompatActivity {
         phone = findViewById(R.id.editTextPhone2);
         email = findViewById(R.id.editTextTextEmailAddress2);
 
+        dbManager.openCloudDBZone(this);
+
         register.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, RegisterActivity.class)));
 
-        phone.setOnClickListener(v -> {
+        phoneLogin.setOnClickListener(v -> {
             authManager = new AuthenticationManager(MainActivity.this,
                     AuthType.PHONE,
                     phone.getText().toString().trim(),
-                    true);
+                    true,
+                    dbManager);
             authManager.sendVerifyCode();
         });
 
-        email.setOnClickListener(v -> {
+        emailLogin.setOnClickListener(v -> {
             authManager = new AuthenticationManager(MainActivity.this,
                     AuthType.EMAIL,
                     email.getText().toString().trim(),
-                    true);
+                    true,
+                    dbManager);
             authManager.sendVerifyCode();
         });
     }
-
-
-
-
-
-
 }
-

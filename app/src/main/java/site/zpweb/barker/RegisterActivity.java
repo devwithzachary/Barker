@@ -7,6 +7,7 @@ import android.widget.EditText;
 import androidx.appcompat.app.AppCompatActivity;
 
 import site.zpweb.barker.auth.AuthenticationManager;
+import site.zpweb.barker.db.CloudDBManager;
 import site.zpweb.barker.utils.AuthType;
 import site.zpweb.barker.utils.Toaster;
 
@@ -18,6 +19,8 @@ public class RegisterActivity extends AppCompatActivity {
     AuthenticationManager authManager;
     Toaster toaster = new Toaster();
 
+    CloudDBManager dbManager = new CloudDBManager();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -28,6 +31,8 @@ public class RegisterActivity extends AppCompatActivity {
 
         register = findViewById(R.id.registerBtn2);
 
+        dbManager.openCloudDBZone(this);
+
         register.setOnClickListener(v -> {
             String emailString = email.getText().toString().trim();
             String phoneString = phone.getText().toString().trim();
@@ -35,18 +40,27 @@ public class RegisterActivity extends AppCompatActivity {
                 authManager = new AuthenticationManager(RegisterActivity.this,
                         AuthType.EMAIL,
                         emailString,
-                        false);
+                        false,
+                        dbManager);
                 authManager.sendVerifyCode();
             } else if (!phoneString.isEmpty()) {
                 authManager = new AuthenticationManager(RegisterActivity.this,
                         AuthType.PHONE,
                         phoneString,
-                        false);
+                        false,
+                        dbManager);
                 authManager.sendVerifyCode();
             } else {
                 toaster.sendErrorToast(RegisterActivity.this, "please enter either email or phone number");
             }
         });
+
+
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        dbManager.closeCloudDBZone(this);
+    }
 }
