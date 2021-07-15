@@ -18,8 +18,6 @@ public class MainActivity extends AppCompatActivity {
 
     AuthenticationManager authManager;
 
-    CloudDBManager dbManager = new CloudDBManager();
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -32,16 +30,13 @@ public class MainActivity extends AppCompatActivity {
         phone = findViewById(R.id.editTextPhone2);
         email = findViewById(R.id.editTextTextEmailAddress2);
 
-        dbManager.openCloudDBZone(this);
-
         register.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, RegisterActivity.class)));
 
         phoneLogin.setOnClickListener(v -> {
             authManager = new AuthenticationManager(MainActivity.this,
                     AuthType.PHONE,
                     phone.getText().toString().trim(),
-                    true,
-                    dbManager);
+                    true);
             authManager.sendVerifyCode();
         });
 
@@ -49,8 +44,7 @@ public class MainActivity extends AppCompatActivity {
             authManager = new AuthenticationManager(MainActivity.this,
                     AuthType.EMAIL,
                     email.getText().toString().trim(),
-                    true,
-                    dbManager);
+                    true);
             authManager.sendVerifyCode();
         });
     }

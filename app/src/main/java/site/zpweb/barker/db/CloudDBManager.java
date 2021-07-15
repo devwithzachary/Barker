@@ -8,14 +8,15 @@ import com.huawei.agconnect.cloud.database.CloudDBZoneConfig;
 import com.huawei.agconnect.cloud.database.CloudDBZoneObjectList;
 import com.huawei.agconnect.cloud.database.CloudDBZoneQuery;
 import com.huawei.agconnect.cloud.database.CloudDBZoneSnapshot;
+import com.huawei.agconnect.cloud.database.ListenerHandler;
+import com.huawei.agconnect.cloud.database.OnSnapshotListener;
 import com.huawei.agconnect.cloud.database.exceptions.AGConnectCloudDBException;
-import com.huawei.hmf.tasks.OnFailureListener;
-import com.huawei.hmf.tasks.OnSuccessListener;
 import com.huawei.hmf.tasks.Task;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import site.zpweb.barker.model.ObjectTypeInfoHelper;
 import site.zpweb.barker.model.User;
 import site.zpweb.barker.utils.Toaster;
 
@@ -28,28 +29,35 @@ public class CloudDBManager {
     private final AGConnectCloudDB cloudDB;
     private CloudDBZone cloudDBZone;
 
-    public CloudDBManager(){
+    private final Context context;
+    private final UserCallBack callBack;
+
+    private final OnSnapshotListener<User> snapshotListener = (cloudDBZoneSnapshot, e) -> processResults(cloudDBZoneSnapshot);
+
+    public CloudDBManager(Context context, UserCallBack callBack){
         cloudDB = AGConnectCloudDB.getInstance();
+        this.context = context;
+        this.callBack = callBack;
     }
 
     public static void initCloudDB(Context context){
         AGConnectCloudDB.initialize(context);
     }
 
-    public void openCloudDBZone(Context context){
+    public void openCloudDBZoneV2(){
         CloudDBZoneConfig config = new CloudDBZoneConfig("Barker",
                 CloudDBZoneConfig.CloudDBZoneSyncProperty.CLOUDDBZONE_CLOUD_CACHE,
                 CloudDBZoneConfig.CloudDBZoneAccessProperty.CLOUDDBZONE_PUBLIC);
         config.setPersistenceEnabled(true);
 
-        try {
-            cloudDBZone = cloudDB.openCloudDBZone(config, true);
-        } catch (AGConnectCloudDBException e) {
-            toaster.sendErrorToast(context, e.getLocalizedMessage());
-        }
+        Task<CloudDBZone> task = cloudDB.openCloudDBZone2(config, true);
+        task.addOnSuccessListener(zone -> {
+            cloudDBZone = zone;
+            addSubscription();
+        }).addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
     }
 
-    public void closeCloudDBZone(Context context){
+    public void closeCloudDBZone(){
         try {
             cloudDB.closeCloudDBZone(cloudDBZone);
         } catch (AGConnectCloudDBException e) {
@@ -57,17 +65,36 @@ public class CloudDBManager {
         }
      }
 
-    public void upsertUser(User user, Context context) {
+     public void createObjectType() {
+        try {
+            cloudDB.createObjectType(ObjectTypeInfoHelper.getObjectTypeInfo());
+        } catch (Exception e) {
+            toaster.sendErrorToast(context, e.getLocalizedMessage());
+        }
+     }
+
+     public void addSubscription(){
+        CloudDBZoneQuery<User> snapshotQuery = CloudDBZoneQuery.where(User.class).equalTo("uid", "");
+         try {
+             ListenerHandler handler = cloudDBZone.subscribeSnapshot(snapshotQuery,
+                     CloudDBZoneQuery.CloudDBZoneQueryPolicy.POLICY_QUERY_FROM_CLOUD_ONLY,
+                     snapshotListener);
+         } catch (Exception e) {
+             toaster.sendErrorToast(context, e.getLocalizedMessage());
+         }
+     }
+
+    public void upsertUser(User user) {
         Task<Integer> upsertTask = cloudDBZone.executeUpsert(user);
-        executeTask(upsertTask, context);
+        executeTask(upsertTask);
     }
 
-    public void upsertUsers(List<User> users,Context context) {
+    public void upsertUsers(List<User> users) {
         Task<Integer> upsertTask = cloudDBZone.executeUpsert(users);
-        executeTask(upsertTask, context);
+        executeTask(upsertTask);
     }
 
-    private void executeTask(Task<Integer> task,Context context) {
+    private void executeTask(Task<Integer> task) {
         task.addOnSuccessListener(integer -> toaster.sendSuccessToast(context, "upsert successful"))
                 .addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
     }
@@ -86,18 +113,18 @@ public class CloudDBManager {
         }
     }
 
-    public void getAllUsers(Context context){
-        queryUsers(CloudDBZoneQuery.where(User.class), context);
+    public void getAllUsers(){
+        queryUsers(CloudDBZoneQuery.where(User.class));
     }
 
-    public void queryUsers(CloudDBZoneQuery<User> query, Context context) {
+    public void queryUsers(CloudDBZoneQuery<User> query) {
         Task<CloudDBZoneSnapshot<User>> task = cloudDBZone.executeQuery(query,
                 CloudDBZoneQuery.CloudDBZoneQueryPolicy.POLICY_QUERY_FROM_CLOUD_ONLY);
-        task.addOnSuccessListener(userCloudDBZoneSnapshot -> processResults(userCloudDBZoneSnapshot, context))
+        task.addOnSuccessListener(this::processResults)
                 .addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
     }
 
-    private void processResults(CloudDBZoneSnapshot<User> userCloudDBZoneSnapshot, Context context) {
+    private void processResults(CloudDBZoneSnapshot<User> userCloudDBZoneSnapshot) {
         CloudDBZoneObjectList<User> userCursor = userCloudDBZoneSnapshot.getSnapshotObjects();
         List<User> userList = new ArrayList<>();
 
@@ -107,12 +134,21 @@ public class CloudDBManager {
                 updateMaxUserID(user);
                 userList.add(user);
             }
-            //HAVE USER LIST
+            callBack.onAddOrQuery(userList);
         } catch (AGConnectCloudDBException e) {
+            callBack.onError(e.getLocalizedMessage());
             toaster.sendErrorToast(context, e.getLocalizedMessage());
         } finally {
             userCloudDBZoneSnapshot.release();
         }
+    }
+
+    public interface UserCallBack {
+        void onAddOrQuery(List<User> userList);
+
+        void onDelete(List<User> userList);
+
+        void onError(String errorMessage);
     }
 
 }

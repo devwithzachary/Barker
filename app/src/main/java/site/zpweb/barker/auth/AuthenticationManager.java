@@ -1,7 +1,6 @@
 package site.zpweb.barker.auth;
 
 import android.content.Context;
-import android.util.Log;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AlertDialog;
@@ -13,11 +12,13 @@ import com.huawei.agconnect.auth.EmailAuthProvider;
 import com.huawei.agconnect.auth.EmailUser;
 import com.huawei.agconnect.auth.PhoneAuthProvider;
 import com.huawei.agconnect.auth.PhoneUser;
+import com.huawei.agconnect.auth.SignInResult;
 import com.huawei.agconnect.auth.VerifyCodeResult;
 import com.huawei.agconnect.auth.VerifyCodeSettings;
 import com.huawei.hmf.tasks.Task;
 import com.huawei.hmf.tasks.TaskExecutors;
 
+import java.util.List;
 import java.util.Locale;
 
 import site.zpweb.barker.db.CloudDBManager;
@@ -25,21 +26,24 @@ import site.zpweb.barker.model.User;
 import site.zpweb.barker.utils.AuthType;
 import site.zpweb.barker.utils.Toaster;
 
-public class AuthenticationManager {
+public class AuthenticationManager implements CloudDBManager.UserCallBack{
 
     Toaster toaster = new Toaster();
     Context context;
     int authType;
     String contactString;
     boolean isLogin;
-    CloudDBManager dbManager;
+    private final CloudDBManager dbManager;
 
-    public AuthenticationManager(Context context, int authType, String contactString, boolean isLogin, CloudDBManager dbManager){
+    public AuthenticationManager(Context context, int authType, String contactString, boolean isLogin){
         this.context = context;
         this.authType = authType;
         this.contactString = contactString;
         this.isLogin = isLogin;
-        this.dbManager = dbManager;
+
+        dbManager = new CloudDBManager(context, this);
+        dbManager.createObjectType();
+        dbManager.openCloudDBZoneV2();
     }
 
     public void sendVerifyCode() {
@@ -114,9 +118,7 @@ public class AuthenticationManager {
 
     private void signIn(AGConnectAuthCredential credential) {
         AGConnectAuth.getInstance().signIn(credential)
-                .addOnSuccessListener(signInResult -> {
-                    getUser();
-                })
+                .addOnSuccessListener(signInResult -> getUser())
                 .addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
 
     }
@@ -128,14 +130,8 @@ public class AuthenticationManager {
                     .setVerifyCode(authCode)
                     .build();
 
-            AGConnectAuth.getInstance().createUser(emailUser).addOnSuccessListener(signInResult -> {
-                User user = new User();
-                user.setId(dbManager.getMaxUserID() + 1);
-                user.setUid(signInResult.getUser().getUid());
-                dbManager.upsertUser(user, context);
-
-                getUser();
-            }).addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
+            AGConnectAuth.getInstance().createUser(emailUser).addOnSuccessListener(this::saveRegisteredUser)
+                    .addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
         } else if (authType == AuthType.PHONE) {
             PhoneUser phoneUser = new PhoneUser.Builder()
                     .setPhoneNumber(contactString)
@@ -143,19 +139,36 @@ public class AuthenticationManager {
                     .setVerifyCode(authCode)
                     .build();
 
-            AGConnectAuth.getInstance().createUser(phoneUser).addOnSuccessListener(signInResult -> {
-                User user = new User();
-                user.setId(dbManager.getMaxUserID() + 1);
-                user.setUid(signInResult.getUser().getUid());
-                dbManager.upsertUser(user, context);
-                getUser();
-            }).addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
+            AGConnectAuth.getInstance().createUser(phoneUser).addOnSuccessListener(this::saveRegisteredUser)
+                    .addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
         }
+    }
+
+    private void saveRegisteredUser(SignInResult signInResult){
+        User user = new User();
+        user.setId(dbManager.getMaxUserID() + 1);
+        user.setUid(signInResult.getUser().getUid());
+        dbManager.upsertUser(user);
     }
 
     private void getUser(){
         AGConnectUser user = AGConnectAuth.getInstance().getCurrentUser();
         toaster.sendSuccessToast(context, user.getUid());
+
+    }
+
+    @Override
+    public void onAddOrQuery(List<User> userList) {
+
+    }
+
+    @Override
+    public void onDelete(List<User> userList) {
+
+    }
+
+    @Override
+    public void onError(String errorMessage) {
 
     }
 }

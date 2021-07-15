@@ -19,8 +19,6 @@ public class RegisterActivity extends AppCompatActivity {
     AuthenticationManager authManager;
     Toaster toaster = new Toaster();
 
-    CloudDBManager dbManager = new CloudDBManager();
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -31,8 +29,6 @@ public class RegisterActivity extends AppCompatActivity {
 
         register = findViewById(R.id.registerBtn2);
 
-        dbManager.openCloudDBZone(this);
-
         register.setOnClickListener(v -> {
             String emailString = email.getText().toString().trim();
             String phoneString = phone.getText().toString().trim();
@@ -40,15 +36,13 @@ public class RegisterActivity extends AppCompatActivity {
                 authManager = new AuthenticationManager(RegisterActivity.this,
                         AuthType.EMAIL,
                         emailString,
-                        false,
-                        dbManager);
+                        false);
                 authManager.sendVerifyCode();
             } else if (!phoneString.isEmpty()) {
                 authManager = new AuthenticationManager(RegisterActivity.this,
                         AuthType.PHONE,
                         phoneString,
-                        false,
-                        dbManager);
+                        false);
                 authManager.sendVerifyCode();
             } else {
                 toaster.sendErrorToast(RegisterActivity.this, "please enter either email or phone number");
@@ -56,11 +50,5 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
 
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        dbManager.closeCloudDBZone(this);
     }
 }
