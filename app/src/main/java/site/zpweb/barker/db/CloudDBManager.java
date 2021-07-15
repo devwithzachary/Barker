@@ -13,7 +13,6 @@ import com.huawei.hmf.tasks.OnFailureListener;
 import com.huawei.hmf.tasks.OnSuccessListener;
 import com.huawei.hmf.tasks.Task;
 
-import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,7 +27,6 @@ public class CloudDBManager {
 
     private final AGConnectCloudDB cloudDB;
     private CloudDBZone cloudDBZone;
-    private CloudDBZoneConfig config;
 
     public CloudDBManager(){
         cloudDB = AGConnectCloudDB.getInstance();
@@ -39,7 +37,7 @@ public class CloudDBManager {
     }
 
     public void openCloudDBZone(Context context){
-        config = new CloudDBZoneConfig("Barker",
+        CloudDBZoneConfig config = new CloudDBZoneConfig("Barker",
                 CloudDBZoneConfig.CloudDBZoneSyncProperty.CLOUDDBZONE_CLOUD_CACHE,
                 CloudDBZoneConfig.CloudDBZoneAccessProperty.CLOUDDBZONE_PUBLIC);
         config.setPersistenceEnabled(true);
@@ -70,17 +68,8 @@ public class CloudDBManager {
     }
 
     private void executeTask(Task<Integer> task,Context context) {
-        task.addOnSuccessListener(new OnSuccessListener<Integer>() {
-            @Override
-            public void onSuccess(Integer integer) {
-                toaster.sendSuccessToast(context, "upsert successful");
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(Exception e) {
-                toaster.sendErrorToast(context, e.getLocalizedMessage());
-            }
-        });
+        task.addOnSuccessListener(integer -> toaster.sendSuccessToast(context, "upsert successful"))
+                .addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
     }
 
     public void deleteUser(User user){
@@ -104,17 +93,8 @@ public class CloudDBManager {
     public void queryUsers(CloudDBZoneQuery<User> query, Context context) {
         Task<CloudDBZoneSnapshot<User>> task = cloudDBZone.executeQuery(query,
                 CloudDBZoneQuery.CloudDBZoneQueryPolicy.POLICY_QUERY_FROM_CLOUD_ONLY);
-        task.addOnSuccessListener(new OnSuccessListener<CloudDBZoneSnapshot<User>>() {
-            @Override
-            public void onSuccess(CloudDBZoneSnapshot<User> userCloudDBZoneSnapshot) {
-                processResults(userCloudDBZoneSnapshot, context);
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(Exception e) {
-                toaster.sendErrorToast(context, e.getLocalizedMessage());
-            }
-        });
+        task.addOnSuccessListener(userCloudDBZoneSnapshot -> processResults(userCloudDBZoneSnapshot, context))
+                .addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
     }
 
     private void processResults(CloudDBZoneSnapshot<User> userCloudDBZoneSnapshot, Context context) {
