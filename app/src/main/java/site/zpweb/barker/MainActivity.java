@@ -8,7 +8,7 @@ import android.widget.EditText;
 import androidx.appcompat.app.AppCompatActivity;
 
 import site.zpweb.barker.auth.AuthenticationManager;
-import site.zpweb.barker.db.CloudDBManager;
+import site.zpweb.barker.model.LoginRegisterData;
 import site.zpweb.barker.utils.AuthType;
 
 public class MainActivity extends AppCompatActivity {
@@ -33,19 +33,26 @@ public class MainActivity extends AppCompatActivity {
         register.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, RegisterActivity.class)));
 
         phoneLogin.setOnClickListener(v -> {
-            authManager = new AuthenticationManager(MainActivity.this,
-                    AuthType.PHONE,
-                    phone.getText().toString().trim(),
-                    true);
-            authManager.sendVerifyCode();
+            login(AuthType.PHONE);
         });
 
         emailLogin.setOnClickListener(v -> {
-            authManager = new AuthenticationManager(MainActivity.this,
-                    AuthType.EMAIL,
-                    email.getText().toString().trim(),
-                    true);
-            authManager.sendVerifyCode();
+            login(AuthType.EMAIL);
         });
+    }
+
+    private void login(int authType) {
+        authManager = new AuthenticationManager(MainActivity.this,
+                authType,
+                getLoginRegisterData(),
+                true);
+        authManager.sendVerifyCode();
+    }
+
+    private LoginRegisterData getLoginRegisterData() {
+        String emailString = email.getText().toString().trim();
+        String phoneString = phone.getText().toString().trim();
+
+        return new LoginRegisterData(phoneString, emailString, "", "");
     }
 }

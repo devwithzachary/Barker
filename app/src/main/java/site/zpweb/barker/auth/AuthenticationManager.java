@@ -1,6 +1,8 @@
 package site.zpweb.barker.auth;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AlertDialog;
@@ -15,14 +17,17 @@ import com.huawei.agconnect.auth.PhoneUser;
 import com.huawei.agconnect.auth.SignInResult;
 import com.huawei.agconnect.auth.VerifyCodeResult;
 import com.huawei.agconnect.auth.VerifyCodeSettings;
+import com.huawei.agconnect.cloud.database.CloudDBZoneQuery;
 import com.huawei.hmf.tasks.Task;
 import com.huawei.hmf.tasks.TaskExecutors;
 
 import java.util.List;
 import java.util.Locale;
 
+import site.zpweb.barker.FeedActivity;
 import site.zpweb.barker.db.CloudDBManager;
-import site.zpweb.barker.model.User;
+import site.zpweb.barker.model.LoginRegisterData;
+import site.zpweb.barker.model.db.User;
 import site.zpweb.barker.utils.AuthType;
 import site.zpweb.barker.utils.Toaster;
 
@@ -31,14 +36,15 @@ public class AuthenticationManager implements CloudDBManager.UserCallBack{
     Toaster toaster = new Toaster();
     Context context;
     int authType;
-    String contactString;
+    LoginRegisterData loginRegisterData;
     boolean isLogin;
     private final CloudDBManager dbManager;
+    private String loginUserUID = "0";
 
-    public AuthenticationManager(Context context, int authType, String contactString, boolean isLogin){
+    public AuthenticationManager(Context context, int authType, LoginRegisterData loginRegisterData, boolean isLogin){
         this.context = context;
         this.authType = authType;
-        this.contactString = contactString;
+        this.loginRegisterData = loginRegisterData;
         this.isLogin = isLogin;
 
         dbManager = new CloudDBManager(context, this);
@@ -54,9 +60,9 @@ public class AuthenticationManager implements CloudDBManager.UserCallBack{
                 .build();
 
         if (authType == AuthType.EMAIL) {
-            sendEmailCode(contactString, settings);
+            sendEmailCode(loginRegisterData.getEmail(), settings);
         } else if (authType == AuthType.PHONE) {
-            sendPhoneCode(contactString, settings);
+            sendPhoneCode(loginRegisterData.getPhoneNumber(), settings);
         } else {
             toaster.sendErrorToast(context, "please enter either email or phone number");
         }
@@ -94,13 +100,13 @@ public class AuthenticationManager implements CloudDBManager.UserCallBack{
                 AGConnectAuthCredential credential = null;
                 if (authType == AuthType.EMAIL) {
                     credential = EmailAuthProvider.credentialWithVerifyCode(
-                            contactString,
+                            loginRegisterData.getEmail(),
                             null,
                             authCode);
                 } else if (authType == AuthType.PHONE) {
                     credential = PhoneAuthProvider.credentialWithVerifyCode(
                             "44",
-                            contactString,
+                            loginRegisterData.getPhoneNumber(),
                             null,
                             authCode);
                 }
@@ -126,7 +132,7 @@ public class AuthenticationManager implements CloudDBManager.UserCallBack{
     private void register(String authCode) {
         if (authType == AuthType.EMAIL) {
             EmailUser emailUser = new EmailUser.Builder()
-                    .setEmail(contactString)
+                    .setEmail(loginRegisterData.getEmail())
                     .setVerifyCode(authCode)
                     .build();
 
@@ -134,7 +140,7 @@ public class AuthenticationManager implements CloudDBManager.UserCallBack{
                     .addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
         } else if (authType == AuthType.PHONE) {
             PhoneUser phoneUser = new PhoneUser.Builder()
-                    .setPhoneNumber(contactString)
+                    .setPhoneNumber(loginRegisterData.getPhoneNumber())
                     .setCountryCode("44")
                     .setVerifyCode(authCode)
                     .build();
@@ -148,18 +154,44 @@ public class AuthenticationManager implements CloudDBManager.UserCallBack{
         User user = new User();
         user.setId(dbManager.getMaxUserID() + 1);
         user.setUid(signInResult.getUser().getUid());
+        user.setUsername(loginRegisterData.getUsername());
+        user.setDisplayname(loginRegisterData.getDisplayName());
         dbManager.upsertUser(user);
     }
 
     private void getUser(){
         AGConnectUser user = AGConnectAuth.getInstance().getCurrentUser();
-        toaster.sendSuccessToast(context, user.getUid());
+        loginUserUID = user.getUid();
+        CloudDBZoneQuery<User> snapshotQuery = CloudDBZoneQuery.where(User.class).equalTo("uid", loginUserUID);
+        dbManager.queryUsers(snapshotQuery);
+    }
 
+    private void saveLoginDetail(User user) {
+        SharedPreferences preferences = context.getSharedPreferences("loginDetail", 0);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean("isLoginedIn", true);
+        editor.putInt("userId", user.getId());
+    }
+
+    private void proceedToFeed(){
+        context.startActivity(new Intent(context, FeedActivity.class));
     }
 
     @Override
-    public void onAddOrQuery(List<User> userList) {
+    public void onUpsert(User user){
+        saveLoginDetail(user);
+        proceedToFeed();
+    }
 
+    @Override
+    public void onQuery(List<User> userList) {
+        if (userList.size() == 1) {
+            User user = userList.get(0);
+            if (user.getUid().equals(loginUserUID)){
+                saveLoginDetail(user);
+                proceedToFeed();
+            }
+        }
     }
 
     @Override
@@ -169,6 +201,6 @@ public class AuthenticationManager implements CloudDBManager.UserCallBack{
 
     @Override
     public void onError(String errorMessage) {
-
+        toaster.sendErrorToast(context, errorMessage);
     }
 }

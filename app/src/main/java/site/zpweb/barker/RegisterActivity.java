@@ -8,12 +8,13 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import site.zpweb.barker.auth.AuthenticationManager;
 import site.zpweb.barker.db.CloudDBManager;
+import site.zpweb.barker.model.LoginRegisterData;
 import site.zpweb.barker.utils.AuthType;
 import site.zpweb.barker.utils.Toaster;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    EditText email, phone;
+    EditText email, phone, username, displayName;
     Button register;
 
     AuthenticationManager authManager;
@@ -26,22 +27,29 @@ public class RegisterActivity extends AppCompatActivity {
 
         email = findViewById(R.id.editTextTextEmailAddress);
         phone = findViewById(R.id.editTextPhone);
+        username = findViewById(R.id.editTextTextUsername);
+        displayName = findViewById(R.id.editTextTextDisplayName);
 
         register = findViewById(R.id.registerBtn2);
 
         register.setOnClickListener(v -> {
             String emailString = email.getText().toString().trim();
             String phoneString = phone.getText().toString().trim();
+            String usernameString = username.getText().toString().trim();
+            String displayNameString = displayName.getText().toString().trim();
+
+            LoginRegisterData registerData = new LoginRegisterData(phoneString, emailString, usernameString, displayNameString);
+
             if (!emailString.isEmpty()) {
                 authManager = new AuthenticationManager(RegisterActivity.this,
                         AuthType.EMAIL,
-                        emailString,
+                        registerData,
                         false);
                 authManager.sendVerifyCode();
             } else if (!phoneString.isEmpty()) {
                 authManager = new AuthenticationManager(RegisterActivity.this,
                         AuthType.PHONE,
-                        phoneString,
+                        registerData,
                         false);
                 authManager.sendVerifyCode();
             } else {

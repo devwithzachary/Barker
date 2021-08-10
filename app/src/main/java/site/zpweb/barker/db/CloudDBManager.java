@@ -16,8 +16,8 @@ import com.huawei.hmf.tasks.Task;
 import java.util.ArrayList;
 import java.util.List;
 
-import site.zpweb.barker.model.ObjectTypeInfoHelper;
-import site.zpweb.barker.model.User;
+import site.zpweb.barker.model.db.ObjectTypeInfoHelper;
+import site.zpweb.barker.model.db.User;
 import site.zpweb.barker.utils.Toaster;
 
 public class CloudDBManager {
@@ -86,17 +86,10 @@ public class CloudDBManager {
 
     public void upsertUser(User user) {
         Task<Integer> upsertTask = cloudDBZone.executeUpsert(user);
-        executeTask(upsertTask);
-    }
-
-    public void upsertUsers(List<User> users) {
-        Task<Integer> upsertTask = cloudDBZone.executeUpsert(users);
-        executeTask(upsertTask);
-    }
-
-    private void executeTask(Task<Integer> task) {
-        task.addOnSuccessListener(integer -> toaster.sendSuccessToast(context, "upsert successful"))
-                .addOnFailureListener(e -> toaster.sendErrorToast(context, e.getLocalizedMessage()));
+        upsertTask.addOnSuccessListener(integer -> {
+            updateMaxUserID(user);
+            callBack.onUpsert(user);
+        }).addOnFailureListener(e -> callBack.onError(e.getLocalizedMessage()));
     }
 
     public void deleteUser(User user){
@@ -134,7 +127,7 @@ public class CloudDBManager {
                 updateMaxUserID(user);
                 userList.add(user);
             }
-            callBack.onAddOrQuery(userList);
+            callBack.onQuery(userList);
         } catch (AGConnectCloudDBException e) {
             callBack.onError(e.getLocalizedMessage());
             toaster.sendErrorToast(context, e.getLocalizedMessage());
@@ -144,10 +137,9 @@ public class CloudDBManager {
     }
 
     public interface UserCallBack {
-        void onAddOrQuery(List<User> userList);
-
+        void onUpsert(User user);
+        void onQuery(List<User> userList);
         void onDelete(List<User> userList);
-
         void onError(String errorMessage);
     }
 
