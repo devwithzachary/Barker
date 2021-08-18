@@ -17,8 +17,7 @@ import com.huawei.agconnect.cloud.database.annotations.PrimaryKeys;
  */
 @PrimaryKeys({"id"})
 @Indexes({"post_id:id"})
-public final class Post extends CloudDBZoneObject {
-    private Integer id;
+public final class Post extends BaseCloudDBZoneObject {
 
     @NotNull
     @DefaultValue(stringValue = "0")
@@ -29,14 +28,6 @@ public final class Post extends CloudDBZoneObject {
     public Post() {
         super(Post.class);
         this.content = "0";
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Integer getId() {
-        return id;
     }
 
     public void setContent(String content) {

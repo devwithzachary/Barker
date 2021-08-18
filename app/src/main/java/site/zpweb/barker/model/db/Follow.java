@@ -15,23 +15,13 @@ import com.huawei.agconnect.cloud.database.annotations.PrimaryKeys;
  */
 @PrimaryKeys({"id"})
 @Indexes({"follow_id:id"})
-public final class Follow extends CloudDBZoneObject {
-    private Integer id;
-
+public final class Follow extends BaseCloudDBZoneObject {
     private Integer follower_user_id;
 
     private Integer following_user_id;
 
     public Follow() {
         super(Follow.class);
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Integer getId() {
-        return id;
     }
 
     public void setFollower_user_id(Integer follower_user_id) {

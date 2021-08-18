@@ -13,8 +13,7 @@ import com.huawei.agconnect.cloud.database.annotations.PrimaryKeys;
  * @since 2021-08-05
  */
 @PrimaryKeys({"id"})
-public final class Like extends CloudDBZoneObject {
-    private Integer id;
+public final class Like extends BaseCloudDBZoneObject {
 
     private Integer post_id;
 
@@ -22,14 +21,6 @@ public final class Like extends CloudDBZoneObject {
 
     public Like() {
         super(Like.class);
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Integer getId() {
-        return id;
     }
 
     public void setPost_id(Integer post_id) {

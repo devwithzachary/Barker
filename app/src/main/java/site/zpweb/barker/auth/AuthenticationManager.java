@@ -31,7 +31,7 @@ import site.zpweb.barker.model.db.User;
 import site.zpweb.barker.utils.AuthType;
 import site.zpweb.barker.utils.Toaster;
 
-public class AuthenticationManager implements CloudDBManager.UserCallBack{
+public class AuthenticationManager implements CloudDBManager.DBCallBack<User> {
 
     Toaster toaster = new Toaster();
     Context context;
@@ -47,7 +47,7 @@ public class AuthenticationManager implements CloudDBManager.UserCallBack{
         this.loginRegisterData = loginRegisterData;
         this.isLogin = isLogin;
 
-        dbManager = new CloudDBManager(context, this);
+        dbManager = new CloudDBManager<User>(context, this, new User());
         dbManager.createObjectType();
         dbManager.openCloudDBZoneV2();
     }
@@ -156,21 +156,22 @@ public class AuthenticationManager implements CloudDBManager.UserCallBack{
         user.setUid(signInResult.getUser().getUid());
         user.setUsername(loginRegisterData.getUsername());
         user.setDisplayname(loginRegisterData.getDisplayName());
-        dbManager.upsertUser(user);
+        dbManager.upsert(user);
     }
 
     private void getUser(){
         AGConnectUser user = AGConnectAuth.getInstance().getCurrentUser();
         loginUserUID = user.getUid();
         CloudDBZoneQuery<User> snapshotQuery = CloudDBZoneQuery.where(User.class).equalTo("uid", loginUserUID);
-        dbManager.queryUsers(snapshotQuery);
+        dbManager.query(snapshotQuery);
     }
 
     private void saveLoginDetail(User user) {
         SharedPreferences preferences = context.getSharedPreferences("loginDetail", 0);
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean("isLoginedIn", true);
+        editor.putBoolean("isLoggedIn", true);
         editor.putInt("userId", user.getId());
+        editor.apply();
     }
 
     private void proceedToFeed(){

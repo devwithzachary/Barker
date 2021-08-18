@@ -7,7 +7,6 @@ import android.widget.EditText;
 import androidx.appcompat.app.AppCompatActivity;
 
 import site.zpweb.barker.auth.AuthenticationManager;
-import site.zpweb.barker.db.CloudDBManager;
 import site.zpweb.barker.model.LoginRegisterData;
 import site.zpweb.barker.utils.AuthType;
 import site.zpweb.barker.utils.Toaster;

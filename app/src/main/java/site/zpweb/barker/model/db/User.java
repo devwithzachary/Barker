@@ -17,8 +17,7 @@ import com.huawei.agconnect.cloud.database.annotations.PrimaryKeys;
  */
 @PrimaryKeys({"id"})
 @Indexes({"user_id:id"})
-public final class User extends CloudDBZoneObject {
-    private Integer id;
+public final class User extends BaseCloudDBZoneObject {
 
     @DefaultValue(stringValue = "0")
     private String uid;
@@ -37,14 +36,6 @@ public final class User extends CloudDBZoneObject {
         this.uid = "0";
         this.username = "0";
         this.displayname = "0";
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Integer getId() {
-        return id;
     }
 
     public void setUid(String uid) {

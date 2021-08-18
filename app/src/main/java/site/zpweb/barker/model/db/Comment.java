@@ -21,9 +21,7 @@ import java.util.Date;
  */
 @PrimaryKeys({"id"})
 @Indexes({"comment_id:id"})
-public final class Comment extends CloudDBZoneObject {
-    private Integer id;
-
+public final class Comment extends BaseCloudDBZoneObject {
     private String content;
 
     private Integer post_id;
@@ -32,14 +30,6 @@ public final class Comment extends CloudDBZoneObject {
 
     public Comment() {
         super(Comment.class);
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Integer getId() {
-        return id;
     }
 
     public void setContent(String content) {

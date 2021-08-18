@@ -1,6 +1,7 @@
 package site.zpweb.barker;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -39,6 +40,15 @@ public class MainActivity extends AppCompatActivity {
         emailLogin.setOnClickListener(v -> {
             login(AuthType.EMAIL);
         });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        SharedPreferences preferences = this.getSharedPreferences("loginDetail", 0);
+        if(preferences.getBoolean("isLoggedIn", false)) {
+            this.startActivity(new Intent(this, FeedActivity.class));
+        }
     }
 
     private void login(int authType) {
