@@ -3,10 +3,15 @@ package site.zpweb.barker;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Menu;
+import android.widget.EditText;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
+import com.huawei.agconnect.auth.AGConnectAuthCredential;
+import com.huawei.agconnect.auth.EmailAuthProvider;
+import com.huawei.agconnect.auth.PhoneAuthProvider;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -14,16 +19,26 @@ import androidx.navigation.ui.NavigationUI;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 
-import site.zpweb.barker.databinding.ActivityFeedBinding;
+import java.util.List;
 
-public class FeedActivity extends AppCompatActivity {
+import site.zpweb.barker.databinding.ActivityFeedBinding;
+import site.zpweb.barker.model.db.Post;
+import site.zpweb.barker.utils.AuthType;
+
+public class FeedActivity extends AppCompatActivity implements PostManager.PostCallBack {
 
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityFeedBinding binding;
 
+    PostManager postManager;
+
+    List<Post> posts;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        postManager = new PostManager(this, this);
 
         binding = ActivityFeedBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -32,8 +47,7 @@ public class FeedActivity extends AppCompatActivity {
         binding.appBarFeed.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                postManager.makePost();
             }
         });
         DrawerLayout drawer = binding.drawerLayout;
@@ -61,5 +75,25 @@ public class FeedActivity extends AppCompatActivity {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_feed);
         return NavigationUI.navigateUp(navController, mAppBarConfiguration)
                 || super.onSupportNavigateUp();
+    }
+
+    @Override
+    public void onUpsert(Post upsertedObject) {
+        posts.add(0, upsertedObject);
+    }
+
+    @Override
+    public void onQuery(List<Post> queriedObjects) {
+        posts = queriedObjects;
+    }
+
+    @Override
+    public void onDelete(List<Post> deletedObjects) {
+
+    }
+
+    @Override
+    public void onError(String errorMessage) {
+
     }
 }

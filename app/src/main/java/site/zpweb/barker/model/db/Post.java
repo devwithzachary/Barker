@@ -5,19 +5,24 @@
 package site.zpweb.barker.model.db;
 
 import com.huawei.agconnect.cloud.database.CloudDBZoneObject;
+import com.huawei.agconnect.cloud.database.Text;
 import com.huawei.agconnect.cloud.database.annotations.DefaultValue;
+import com.huawei.agconnect.cloud.database.annotations.EntireEncrypted;
 import com.huawei.agconnect.cloud.database.annotations.NotNull;
 import com.huawei.agconnect.cloud.database.annotations.Indexes;
 import com.huawei.agconnect.cloud.database.annotations.PrimaryKeys;
 
+import java.util.Date;
+
 /**
  * Definition of ObjectType Post.
  *
- * @since 2021-08-05
+ * @since 2021-08-26
  */
 @PrimaryKeys({"id"})
 @Indexes({"post_id:id"})
-public final class Post extends BaseCloudDBZoneObject {
+public final class Post extends CloudDBZoneObject implements HasID {
+    private Integer id;
 
     @NotNull
     @DefaultValue(stringValue = "0")
@@ -28,6 +33,14 @@ public final class Post extends BaseCloudDBZoneObject {
     public Post() {
         super(Post.class);
         this.content = "0";
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Integer getId() {
+        return id;
     }
 
     public void setContent(String content) {

@@ -10,6 +10,7 @@ import com.huawei.agconnect.cloud.database.CloudDBZoneObjectList;
 import com.huawei.agconnect.cloud.database.CloudDBZoneQuery;
 import com.huawei.agconnect.cloud.database.CloudDBZoneSnapshot;
 import com.huawei.agconnect.cloud.database.ListenerHandler;
+import com.huawei.agconnect.cloud.database.ObjectTypeInfo;
 import com.huawei.agconnect.cloud.database.OnSnapshotListener;
 import com.huawei.agconnect.cloud.database.exceptions.AGConnectCloudDBException;
 import com.huawei.hmf.tasks.Task;
@@ -17,12 +18,16 @@ import com.huawei.hmf.tasks.Task;
 import java.util.ArrayList;
 import java.util.List;
 
-import site.zpweb.barker.model.db.BaseCloudDBZoneObject;
+import site.zpweb.barker.model.db.Comment;
+import site.zpweb.barker.model.db.Follow;
+import site.zpweb.barker.model.db.HasID;
+import site.zpweb.barker.model.db.Like;
 import site.zpweb.barker.model.db.ObjectTypeInfoHelper;
+import site.zpweb.barker.model.db.Post;
 import site.zpweb.barker.model.db.User;
 import site.zpweb.barker.utils.Toaster;
 
-public class CloudDBManager<T extends BaseCloudDBZoneObject> {
+public class CloudDBManager<T extends CloudDBZoneObject & HasID> {
 
     private final OnSnapshotListener<T> snapshotListener = (cloudDBZoneSnapshot, e) -> processResults(cloudDBZoneSnapshot);
     protected int maxID = 0;
@@ -35,13 +40,13 @@ public class CloudDBManager<T extends BaseCloudDBZoneObject> {
     protected final Context context;
     protected final DBCallBack callBack;
 
-    private BaseCloudDBZoneObject cloudDBZoneObject;
+    private final Class<T> objectClass;
 
-    public CloudDBManager(Context context, DBCallBack callBack, BaseCloudDBZoneObject cloudDBZoneObject){
+    public CloudDBManager(Context context, DBCallBack<T> callBack, Class<T> objectClass){
         cloudDB = AGConnectCloudDB.getInstance();
         this.context = context;
         this.callBack = callBack;
-        this.cloudDBZoneObject = cloudDBZoneObject;
+        this.objectClass = objectClass;
     }
 
     public static void initCloudDB(Context context){
@@ -73,7 +78,8 @@ public class CloudDBManager<T extends BaseCloudDBZoneObject> {
 
      public void createObjectType() {
         try {
-            cloudDB.createObjectType(ObjectTypeInfoHelper.getObjectTypeInfo());
+            ObjectTypeInfo info = ObjectTypeInfoHelper.getObjectTypeInfo();
+            cloudDB.createObjectType(info);
         } catch (Exception e) {
             toaster.sendErrorToast(context, e.getLocalizedMessage());
         }
@@ -81,7 +87,8 @@ public class CloudDBManager<T extends BaseCloudDBZoneObject> {
 
     public void addSubscription(){
 
-        CloudDBZoneQuery snapshotQuery = CloudDBZoneQuery.where(cloudDBZoneObject.getClass()).equalTo("uid", "");
+        CloudDBZoneQuery snapshotQuery = CloudDBZoneQuery.where(objectClass).equalTo("id", 0);
+
         try {
             ListenerHandler handler = cloudDBZone.subscribeSnapshot(snapshotQuery,
                     CloudDBZoneQuery.CloudDBZoneQueryPolicy.POLICY_QUERY_FROM_CLOUD_ONLY,
@@ -92,7 +99,7 @@ public class CloudDBManager<T extends BaseCloudDBZoneObject> {
     }
 
     public void getAll(){
-        query((CloudDBZoneQuery.where(cloudDBZoneObject.getClass())));
+        query((CloudDBZoneQuery.where(objectClass)));
     }
 
     public void query(CloudDBZoneQuery query) {
@@ -118,13 +125,16 @@ public class CloudDBManager<T extends BaseCloudDBZoneObject> {
         return maxID;
     }
 
-    private void updateMaxID(T object){
+    private void updateMaxID(T object ){
         if (maxID < object.getId()) {
             maxID = object.getId();
         }
     }
 
     private void processResults(CloudDBZoneSnapshot<T> userCloudDBZoneSnapshot) {
+        if (userCloudDBZoneSnapshot == null) {
+            return;
+        }
         CloudDBZoneObjectList<T> cursor = userCloudDBZoneSnapshot.getSnapshotObjects();
         List<T> objectList = new ArrayList<>();
 

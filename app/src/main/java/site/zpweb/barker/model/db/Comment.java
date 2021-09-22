@@ -17,11 +17,13 @@ import java.util.Date;
 /**
  * Definition of ObjectType Comment.
  *
- * @since 2021-08-05
+ * @since 2021-08-26
  */
 @PrimaryKeys({"id"})
 @Indexes({"comment_id:id"})
-public final class Comment extends BaseCloudDBZoneObject {
+public final class Comment extends CloudDBZoneObject implements HasID {
+    private Integer id;
+
     private String content;
 
     private Integer post_id;
@@ -30,6 +32,14 @@ public final class Comment extends BaseCloudDBZoneObject {
 
     public Comment() {
         super(Comment.class);
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Integer getId() {
+        return id;
     }
 
     public void setContent(String content) {

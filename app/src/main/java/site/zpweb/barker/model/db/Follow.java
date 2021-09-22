@@ -5,23 +5,39 @@
 package site.zpweb.barker.model.db;
 
 import com.huawei.agconnect.cloud.database.CloudDBZoneObject;
+import com.huawei.agconnect.cloud.database.Text;
+import com.huawei.agconnect.cloud.database.annotations.DefaultValue;
+import com.huawei.agconnect.cloud.database.annotations.EntireEncrypted;
+import com.huawei.agconnect.cloud.database.annotations.NotNull;
 import com.huawei.agconnect.cloud.database.annotations.Indexes;
 import com.huawei.agconnect.cloud.database.annotations.PrimaryKeys;
+
+import java.util.Date;
 
 /**
  * Definition of ObjectType Follow.
  *
- * @since 2021-08-05
+ * @since 2021-08-26
  */
 @PrimaryKeys({"id"})
 @Indexes({"follow_id:id"})
-public final class Follow extends BaseCloudDBZoneObject {
+public final class Follow extends CloudDBZoneObject implements HasID {
+    private Integer id;
+
     private Integer follower_user_id;
 
     private Integer following_user_id;
 
     public Follow() {
         super(Follow.class);
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Integer getId() {
+        return id;
     }
 
     public void setFollower_user_id(Integer follower_user_id) {

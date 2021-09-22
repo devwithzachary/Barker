@@ -5,15 +5,23 @@
 package site.zpweb.barker.model.db;
 
 import com.huawei.agconnect.cloud.database.CloudDBZoneObject;
+import com.huawei.agconnect.cloud.database.Text;
+import com.huawei.agconnect.cloud.database.annotations.DefaultValue;
+import com.huawei.agconnect.cloud.database.annotations.EntireEncrypted;
+import com.huawei.agconnect.cloud.database.annotations.NotNull;
+import com.huawei.agconnect.cloud.database.annotations.Indexes;
 import com.huawei.agconnect.cloud.database.annotations.PrimaryKeys;
+
+import java.util.Date;
 
 /**
  * Definition of ObjectType Like.
  *
- * @since 2021-08-05
+ * @since 2021-08-26
  */
 @PrimaryKeys({"id"})
-public final class Like extends BaseCloudDBZoneObject {
+public final class Like extends CloudDBZoneObject implements HasID {
+    private Integer id;
 
     private Integer post_id;
 
@@ -21,6 +29,14 @@ public final class Like extends BaseCloudDBZoneObject {
 
     public Like() {
         super(Like.class);
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Integer getId() {
+        return id;
     }
 
     public void setPost_id(Integer post_id) {

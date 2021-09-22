@@ -47,7 +47,7 @@ public class AuthenticationManager implements CloudDBManager.DBCallBack<User> {
         this.loginRegisterData = loginRegisterData;
         this.isLogin = isLogin;
 
-        dbManager = new CloudDBManager<User>(context, this, new User());
+        dbManager = new CloudDBManager<User>(context, this, User.class);
         dbManager.createObjectType();
         dbManager.openCloudDBZoneV2();
     }
